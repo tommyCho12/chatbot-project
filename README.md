@@ -31,7 +31,8 @@ A modular Python chatbot service that provides a unified REST API for interactin
    docker-compose up -d
    ```
 
-3. **Download the llama3 model** (first time only):
+3. **Download the llama3 model** (first time only as the volume is set in container):
+   This will download the model to the volume set in the container.
    ```bash
    docker exec -it ollama ollama pull llama3
    ```
