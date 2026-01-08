@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    # Uncomment the following lines if you have a NVIDIA GPU
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+  chatbot:
+    build: .
+    container_name: chatbot-api
+    ports:
+      - "8000:8000"
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - DEFAULT_MODEL=llama3
+    depends_on:
+      - ollama
+    restart: unless-stopped
+    # Optionally mount .env file for API keys
+    # env_file:
+    #   - .env
+
+volumes:
+  ollama_data:
+    driver: local

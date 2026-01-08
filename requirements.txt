@@ -1,0 +1,13 @@
+# Core dependencies
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+pydantic==2.10.3
+python-dotenv==1.0.1
+
+# Ollama provider (required)
+ollama==0.4.4
+
+# Optional providers (install as needed)
+# Uncomment the following lines to enable additional providers:
+# openai==1.57.4
+# anthropic==0.42.0
