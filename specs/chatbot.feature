@@ -122,3 +122,14 @@ Feature: Chatbot API Service
     And the response should contain "name" field
     And the response should contain "endpoints" field
     And the "endpoints" field should describe available API routes
+
+  Scenario: Stream a message response
+    Given Ollama is running and available
+    When I send a POST request to "/chat/stream" with:
+      | field    | value                          |
+      | message  | Count to 3                     |
+      | provider | ollama                         |
+    Then the response status code should be 200
+    And the response header "content-type" should be "text/event-stream"
+    And the response body should be a stream of events
+    And each event should contain a "token" field

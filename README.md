@@ -109,6 +109,29 @@ Send a message to the chatbot.
 - `model` (optional): Model name. Default: provider-specific default
 - `parameters` (optional): Additional provider-specific parameters
 
+#### `POST /chat/stream`
+
+Send a message and receive the response as a stream of Server-Sent Events (SSE).
+
+**Request Body**: Same as `/chat`
+
+**Response Stream**:
+```
+data: {"token": "The", "provider": "ollama", "model": "llama3"}
+
+data: {"token": " capital", "provider": "ollama", "model": "llama3"}
+
+data: {"token": " of", "provider": "ollama", "model": "llama3"}
+...
+```
+
+**Usage Example**:
+```bash
+curl -N -X POST http://localhost:8000/chat/stream \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Tell me a story"}'
+```
+
 #### `GET /health`
 
 Check service and provider health.

@@ -47,6 +47,7 @@ Successfully implemented a production-ready chatbot service in Python with the f
 
 Key features:
 - **POST /chat** - Main chat endpoint with provider selection
+- **POST /chat/stream** - Streaming endpoint using Server-Sent Events (SSE)
 - **GET /health** - Health check showing provider availability
 - **GET /** - API information
 - CORS middleware for cross-origin requests
@@ -229,10 +230,20 @@ Expected response:
   "response": "I'm doing well, thank you! How can I assist you today?",
   "provider": "ollama",
   "model": "llama3"
+  "provider": "ollama",
+  "model": "llama3"
 }
 ```
 
-### Step 6: Test Interactive API Docs
+### Step 6: Test Streaming Endpoint
+
+```bash
+curl -N -X POST http://localhost:8000/chat/stream \
+  -H "Content-Type: application/json" \
+  -d "{\"message\": \"Count to 5\"}"
+```
+
+### Step 7: Test Interactive API Docs
 
 Visit in your browser:
 - **Swagger UI**: http://localhost:8000/docs

@@ -55,6 +55,29 @@ class OllamaProvider(BaseLLMProvider):
             return response['message']['content']
         except Exception as e:
             raise Exception(f"Ollama chat error: {str(e)}")
+            
+    async def chat_stream(self, message: str, model: Optional[str] = None, **kwargs):
+        """
+        Stream response from Ollama.
+        """
+        try:
+            client = self._get_client()
+            model_name = model or self.default_model
+            
+            # Using synchronous stream=True since the official client supports it
+            stream = client.chat(
+                model=model_name,
+                messages=[{'role': 'user', 'content': message}],
+                stream=True,
+                **kwargs
+            )
+            
+            for chunk in stream:
+                if 'message' in chunk and 'content' in chunk['message']:
+                    yield chunk['message']['content']
+                    
+        except Exception as e:
+            raise Exception(f"Ollama stream error: {str(e)}")
     
     async def is_available(self) -> bool:
         """

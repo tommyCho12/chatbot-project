@@ -63,6 +63,28 @@ class OpenAIProvider(BaseLLMProvider):
             return response.choices[0].message.content
         except Exception as e:
             raise Exception(f"OpenAI chat error: {str(e)}")
+            
+    async def chat_stream(self, message: str, model: Optional[str] = None, **kwargs):
+        """
+        Stream response from OpenAI.
+        """
+        try:
+            client = self._get_client()
+            model_name = model or self.default_model
+            
+            stream = await client.chat.completions.create(
+                model=model_name,
+                messages=[{"role": "user", "content": message}],
+                stream=True,
+                **kwargs
+            )
+            
+            async for chunk in stream:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    yield chunk.choices[0].delta.content
+                    
+        except Exception as e:
+            raise Exception(f"OpenAI stream error: {str(e)}")
     
     async def is_available(self) -> bool:
         """

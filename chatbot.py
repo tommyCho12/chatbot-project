@@ -1,9 +1,11 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any
 import uvicorn
 import logging
+import json
 from providers import ProviderFactory
 
 # Configure logging
@@ -17,7 +19,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Chatbot API",
     description="Modular chatbot API supporting multiple LLM providers (Ollama, OpenAI, Claude)",
-    version="1.0.0"
+    version="1.1.0"
 )
 
 # Add CORS middleware
@@ -100,6 +102,43 @@ async def chat(request: ChatRequest):
     except Exception as e:
         logger.error(f"Chat error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error processing chat request: {str(e)}")
+
+
+@app.post("/chat/stream")
+async def chat_stream(request: ChatRequest):
+    """
+    Send a message and get a streaming response (SSE).
+    """
+    try:
+        logger.info(f"Stream request - Provider: {request.provider}")
+        
+        provider = ProviderFactory.get_provider(request.provider)
+        model_name = request.model or provider.get_default_model()
+        params = request.parameters or {}
+
+        async def generate():
+            try:
+                async for chunk in provider.chat_stream(
+                    message=request.message,
+                    model=model_name,
+                    **params
+                ):
+                    data = json.dumps({
+                        "token": chunk,
+                        "provider": request.provider,
+                        "model": model_name
+                    })
+                    yield f"data: {data}\n\n"
+            except Exception as e:
+                logger.error(f"Stream error: {str(e)}")
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+        return StreamingResponse(generate(), media_type="text/event-stream")
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/health", response_model=HealthResponse)

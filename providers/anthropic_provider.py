@@ -67,6 +67,31 @@ class AnthropicProvider(BaseLLMProvider):
             return response.content[0].text
         except Exception as e:
             raise Exception(f"Anthropic chat error: {str(e)}")
+            
+    async def chat_stream(self, message: str, model: Optional[str] = None, **kwargs):
+        """
+        Stream response from Anthropic.
+        """
+        try:
+            client = self._get_client()
+            model_name = model or self.default_model
+            
+            if 'max_tokens' not in kwargs:
+                kwargs['max_tokens'] = 1024
+            
+            stream = await client.messages.create(
+                model=model_name,
+                messages=[{"role": "user", "content": message}],
+                stream=True,
+                **kwargs
+            )
+            
+            async for chunk in stream:
+                if chunk.type == 'content_block_delta':
+                    yield chunk.delta.text
+                    
+        except Exception as e:
+            raise Exception(f"Anthropic stream error: {str(e)}")
     
     async def is_available(self) -> bool:
         """

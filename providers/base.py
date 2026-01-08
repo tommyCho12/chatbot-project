@@ -21,6 +21,21 @@ class BaseLLMProvider(ABC):
         pass
     
     @abstractmethod
+    async def chat_stream(self, message: str, model: Optional[str] = None, **kwargs):
+        """
+        Send a message to the LLM and stream the response.
+        
+        Args:
+            message: The user's message
+            model: Optional model name to use
+            **kwargs: Additional parameters
+            
+        Yields:
+            Chunks of the response as strings
+        """
+        pass
+    
+    @abstractmethod
     async def is_available(self) -> bool:
         """
         Check if the provider is available and configured correctly.

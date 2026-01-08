@@ -29,6 +29,14 @@ POST /chat
 Request: {"message": "Hello, how are you?", "provider": "ollama", "model": "llama3"}
 Response: {"response": "I'm doing well, thank you!", "provider": "ollama", "model": "llama3"}
 
+POST /chat/stream
+Request: {"message": "Tell me a story", "provider": "ollama", "model": "llama3"}
+Response: Streaming Server-Sent Events (SSE)
+data: {"token": "Once"}
+data: {"token": " upon"}
+data: {"token": " a"}
+...
+
 GET /health
 Response: {"status": "healthy", "providers": {"ollama": true, "openai": false, "anthropic": false}}
 ```
