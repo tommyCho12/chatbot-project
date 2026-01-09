@@ -22,7 +22,7 @@ class OllamaProvider(BaseLLMProvider):
     def _get_client(self):
         """Get or create the Ollama client."""
         if self.client is None:
-            self.client = ollama.Client(host=self.base_url)
+            self.client = ollama.AsyncClient(host=self.base_url)
         return self.client
     
     async def chat(self, message: str, model: Optional[str] = None, **kwargs) -> str:
@@ -41,7 +41,7 @@ class OllamaProvider(BaseLLMProvider):
             client = self._get_client()
             model_name = model or self.default_model
             
-            response = client.chat(
+            response = await client.chat(
                 model=model_name,
                 messages=[
                     {
@@ -65,14 +65,14 @@ class OllamaProvider(BaseLLMProvider):
             model_name = model or self.default_model
             
             # Using synchronous stream=True since the official client supports it
-            stream = client.chat(
+            stream = await client.chat(
                 model=model_name,
                 messages=[{'role': 'user', 'content': message}],
                 stream=True,
                 **kwargs
             )
             
-            for chunk in stream:
+            async for chunk in stream:
                 if 'message' in chunk and 'content' in chunk['message']:
                     yield chunk['message']['content']
                     
@@ -89,7 +89,7 @@ class OllamaProvider(BaseLLMProvider):
         try:
             client = self._get_client()
             # Try to list models to verify connectivity
-            client.list()
+            await client.list()
             return True
         except Exception:
             return False
