@@ -1,9 +1,14 @@
 from typing import Dict, Type
 from providers.base import BaseLLMProvider
-from providers.ollama_provider import OllamaProvider
 
 # Optional providers
 _OPTIONAL_PROVIDERS = {}
+
+try:
+    from providers.ollama_provider import OllamaProvider
+    _OPTIONAL_PROVIDERS['ollama'] = OllamaProvider
+except ImportError:
+    pass
 
 try:
     from providers.openai_provider import OpenAIProvider
@@ -17,12 +22,17 @@ try:
 except ImportError:
     pass
 
+try:
+    from providers.gemini_provider import GeminiProvider
+    _OPTIONAL_PROVIDERS['gemini'] = GeminiProvider
+except ImportError:
+    pass
+
 
 class ProviderFactory:
     """Factory for creating LLM provider instances."""
     
     _providers: Dict[str, Type[BaseLLMProvider]] = {
-        'ollama': OllamaProvider,
         **_OPTIONAL_PROVIDERS
     }
     

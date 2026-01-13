@@ -7,6 +7,7 @@ import uvicorn
 import logging
 import json
 from providers import ProviderFactory
+from rag_client import get_relevant_context
 
 # Configure logging
 logging.basicConfig(
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 # Initialize FastAPI app
 app = FastAPI(
     title="Chatbot API",
-    description="Modular chatbot API supporting multiple LLM providers (Ollama, OpenAI, Claude)",
+    description="Modular chatbot API supporting multiple LLM providers (Gemini, Ollama, OpenAI, Claude)",
     version="1.1.0"
 )
 
@@ -36,13 +37,15 @@ app.add_middleware(
 class ChatRequest(BaseModel):
     """Chat request model."""
     message: str = Field(..., description="The user's message", min_length=1)
-    provider: str = Field(default="ollama", description="LLM provider to use")
+    provider: str = Field(default="gemini", description="LLM provider to use")
     model: Optional[str] = Field(default=None, description="Model name (provider-specific)")
     parameters: Optional[Dict[str, Any]] = Field(default=None, description="Additional provider parameters")
+    use_rag: bool = Field(default=True, description="Whether to use RAG for context retrieval")
 
 
 class ChatResponse(BaseModel):
     """Chat response model."""
+    prompt: str = Field(..., description="The prompt that was sent to the LLM")
     response: str = Field(..., description="The LLM's response")
     provider: str = Field(..., description="Provider that was used")
     model: str = Field(..., description="Model that was used")
@@ -69,7 +72,7 @@ async def chat(request: ChatRequest):
         HTTPException: If provider is unavailable or request fails
     """
     try:
-        logger.info(f"Chat request - Provider: {request.provider}, Message: {request.message[:50]}...")
+        logger.info(f"Chat request - Provider: {request.provider}, Message: {request.message[:50]}..., RAG: {request.use_rag}")
         
         # Get provider instance
         provider = ProviderFactory.get_provider(request.provider)
@@ -80,9 +83,26 @@ async def chat(request: ChatRequest):
         # Get additional parameters
         params = request.parameters or {}
         
+        # Get relevant context from RAG if enabled
+        context = ""
+        if request.use_rag:
+            context = get_relevant_context(request.message, top_k=3)
+        
+        # Build the message with context if available
+        if context:
+            enhanced_message = f"""Context information:
+                {context}
+
+                User question: {request.message}
+
+                Answer the question based on the context above. If the context doesn't help answer the question, use your general knowledge."""
+            logger.info(f"Enhanced message with {len(context)} chars of context")
+        else:
+            enhanced_message = request.message
+        
         # Send message to provider
         response_text = await provider.chat(
-            message=request.message,
+            message=enhanced_message,
             model=model_name,
             **params
         )
@@ -90,6 +110,7 @@ async def chat(request: ChatRequest):
         logger.info(f"Chat response - Provider: {request.provider}, Response length: {len(response_text)}")
         
         return ChatResponse(
+            prompt=enhanced_message,
             response=response_text,
             provider=request.provider,
             model=model_name
@@ -110,16 +131,33 @@ async def chat_stream(request: ChatRequest):
     Send a message and get a streaming response (SSE).
     """
     try:
-        logger.info(f"Stream request - Provider: {request.provider}")
+        logger.info(f"Stream request - Provider: {request.provider}, RAG: {request.use_rag}")
         
         provider = ProviderFactory.get_provider(request.provider)
         model_name = request.model or provider.get_default_model()
         params = request.parameters or {}
+        
+        # Get relevant context from RAG if enabled
+        context = ""
+        if request.use_rag:
+            context = get_relevant_context(request.message, top_k=3)
+        
+        # Build the message with context if available
+        if context:
+            enhanced_message = f"""Context information:
+                {context}
+
+                User question: {request.message}
+
+                Answer the question based on the context above. If the context doesn't help answer the question, use your general knowledge."""
+            logger.info(f"Enhanced stream message with {len(context)} chars of context")
+        else:
+            enhanced_message = request.message
 
         async def generate():
             try:
                 async for chunk in provider.chat_stream(
-                    message=request.message,
+                    message=enhanced_message,
                     model=model_name,
                     **params
                 ):
